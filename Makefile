@@ -11,6 +11,7 @@ list:
 	sh -c "echo; $(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | grep -v 'Makefile'| sort"
 
 install-dep:
+	@echo '> Installing dep...'
 	$(shell go get -d -u github.com/golang/dep)
 	$(eval DEP_LATEST = $(shell cd $(GOPATH)/src/github.com/golang/dep; git describe --abbrev=0 --tags))
 	$(shell cd $(GOPATH)/src/github.com/golang/dep; git checkout $(DEP_LATEST))
@@ -18,6 +19,7 @@ install-dep:
 	$(shell cp $(GOPATH)/bin/dep $(GOPATH)/src/$(NAMEREPO)/)
 
 build-app:
+	@echo '> Build middleware app...'
 	cd $(GOPATH)/src/$(NAMEREPO) && $(GOPATH)/bin/dep ensure
 	cd $(GOPATH)/src/$(NAMEREPO) && go build -o ./bin/middleware
 
