@@ -1,0 +1,7 @@
+
+required = ["github.com/olivere/elastic"]
+
+
+[[constraint]]
+   name = "github.com/olivere/elastic"
+   version = "^6.0.0"
