@@ -11,4 +11,5 @@ start:
 
 stop:
 	kill `cat $(GOPATH)/src/$(NAMEREPO)/middleware.pid` && rm -r $(GOPATH)/src/$(NAMEREPO)/middleware.pid
-	
+
+restart: stop start
