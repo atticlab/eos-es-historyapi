@@ -1,0 +1,131 @@
+[
+    {
+        "enabled": true,
+        "method": "POST",
+        "edge": "v1/history/get_actions",
+        "params": [
+            {
+                "account_name": "aliceaccount",
+                "pos": 50,
+                "offset": 0
+            },
+            {
+                "account_name": "atticlabeosb",
+                "pos": 0,
+                "offset": 0
+            },
+            {
+                "account_name": "atticlabeosb",
+                "pos": -2,
+                "offset": 2
+            },
+            {
+                "account_name": "eoshuobipool",
+                "pos": 100,
+                "offset": 1
+            },
+            {
+                "account_name": "starteosiobp",
+                "pos": 100,
+                "offset": 3
+            },
+            {
+                "account_name": "eoslaomaocom",
+                "pos": 100,
+                "offset": -1
+            },
+            {
+                "account_name": "zbeosbp11111",
+                "pos": 100,
+                "offset": -2
+            },
+            {
+                "error": {}
+            }
+        ]
+    },
+    {
+        "enabled": true,
+        "method": "POST",
+        "edge": "v1/history/get_transaction",
+        "params": [
+            {
+                "id": "708f08725f1e7f86670a3e4f5e01f8833df875b5949513643a0a362e3c6ac75f"
+            },
+            {
+                "id": "b65156c165ec42c302f835f7f59079419b6d395e83a86e860c81462fb39ef821"
+            },
+            {
+                "id": "512ca8899ea2c6feb5399be6be8e153b51fc5fa2d0c30fce49dfcf2ba8841cf9"
+            },
+            {
+                "id": "a8ee0df448500d0c370a5e16d164aeb2c55b29cd562af5717f117b173af7708a"
+            },
+            {
+                "id": "e6c814f9ba58e2aedd654abfdefc99c98f3e4bf5f20e4820b7d212f38f1f6f13"
+            },
+            {
+                "id": "8d0b28f72cf7f552fc659f64048554a504aeda7b946ca94c7a926d2aa24586cc"
+            },
+            {
+                "id": "45baf688d6b9f57220cac5b772e478cd95eb163647d3174e4513da2d1565afc7"
+            },
+            {
+                "id": "826eb3a1c7369f723c1e2cfde5460f7fe3362671084c98637e6361c6318c4d79"
+            },
+            {
+                "id": "e66c8a52e831f1ce4ec7e3f5dccfe5201dd214ca207685fc456534702d86523b"
+            },
+            {
+                "id": "15e335435d794075d15b0d214a60db8b58ee9307b2c67e20f5cbf11375de83c9"
+            },
+            {
+                "id": "5a6e6576f81e2f9ab8e27841830e433025ec92bdb9e90085a700718cd1b0ab78"
+            },
+            {
+                "id": "7939d60f36e2489e6a944d2ce901b12ecb3f48a89c37b4190da054a9dd3d3f68"
+            }
+        ]
+    },
+    {
+        "enabled": true,
+        "method": "POST",
+        "edge": "v1/history/get_key_accounts",
+        "params": [
+            {
+                "public_key": "EOS7ffJsLLd9vjWy1nJXweRi3v4zQ6rbgddzRSBH4Y2KhSpGWyUT5"
+            },
+            {
+                "public_key": "EOS6RdYNhaQuqpgj76tDt1kxrKqKhNKsTJ9YpQ1kwpsXBMQvhB7Ym"
+            },
+            {
+                "public_key": "EOS4wj1MioSd3Mcy5EaVyqT4EvMTnJdptCahSHC33LhydP96dwaVh"
+            },
+            {
+                "public_key": "EOS6fg9Fru1Mwr6hErkU2CkcJfFppAD3mPRJc8bGdbvimp375faaw"
+            },
+            {
+                "public_key": "EOS88d13iLkD1wwvyWUweWt8yfVcyJc6wmK9dTTusavVibyhig3UH"
+            }
+        ]
+    },
+    {
+        "enabled": true,
+        "method": "POST",
+        "edge": "v1/history/get_controlled_accounts",
+        "params": [
+            {
+                "controlling_account": "eosio"
+            },
+            {
+                "controlling_account": "betdicegroup"
+            },
+            {
+                "controlling_account": "atticlabeosb"
+            },
+            {
+                "controlling_account": "bitfinexeos1"
+            }
+        ]
+    }
+]
