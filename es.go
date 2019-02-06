@@ -56,24 +56,44 @@ func getIndices(esUrl string, prefixes []string) map[string][]string {
 }
 
 
-func convertAbiToBytes(actionTraces []TransactionTraceActionTrace) {
-	var actionTracesPtrs []*TransactionTraceActionTrace
-	for i, _ := range actionTraces {
-		actionTracesPtrs = append(actionTracesPtrs, &actionTraces[i])
+//takes pointer to TransactionTraceActionTrace
+//returns slice of pointers to TransactionTraceActionTrace
+//that located inside of trace including given trace
+func expandTraces(trace *TransactionTraceActionTrace) ([]*TransactionTraceActionTrace) {
+	var traces []*TransactionTraceActionTrace
+	if trace == nil {
+		return traces
 	}
-	trace := new(TransactionTraceActionTrace)
-	for len(actionTracesPtrs) > 0 {
-		trace = actionTracesPtrs[0]
-		for i, _ := range trace.InlineTraces {
-			actionTracesPtrs = append(actionTracesPtrs, &trace.InlineTraces[i])
-		}
-		actionTracesPtrs = actionTracesPtrs[1:len(actionTracesPtrs)]
-		if trace.Act.Account == "eosio" && trace.Act.Name == "setabi" &&
-			len(trace.Act.HexData) >= 20 { //in hex_data field encoded abi starts from 20 symbol
-			data := trace.Act.HexData[20:]
-			if m, ok := trace.Act.Data.(map[string]interface{}); ok {
-				m["abi"] = data
-			}
+    tmp := []*TransactionTraceActionTrace {trace}
+    for len(tmp) > 0 {
+        tPtr := tmp[0]
+        tmp = tmp[1:]
+
+        traces = append(traces, tPtr)
+
+        var inlineTraces []*TransactionTraceActionTrace
+        for i, _ := range tPtr.InlineTraces {
+            inlineTraces = append(inlineTraces, &tPtr.InlineTraces[i])
+        }
+        tmp = append(inlineTraces, tmp...)
+	}
+	return traces
+}
+
+
+//takes pointer to TransactionTraceActionTrace
+//if given action is eosio:setabi
+//replaces data->abi as json object with same abi as bytes
+//abi as bytes is substring of hex_data (from 20 symbol to the end of string)
+func convertAbiToBytes(trace *TransactionTraceActionTrace) {
+	if trace == nil {
+		return
+	}
+	if trace.Act.Account == "eosio" && trace.Act.Name == "setabi" &&
+		len(trace.Act.HexData) >= 20 { //in hex_data field encoded abi starts from 20 symbol
+		data := trace.Act.HexData[20:]
+		if m, ok := trace.Act.Data.(map[string]interface{}); ok {
+			m["abi"] = data
 		}
 	}
 }
@@ -148,14 +168,10 @@ func getActionTrace(client *elastic.Client, txId string, actionSeq json.RawMessa
 		return nil, err
 	}
 	//replace json abi with bytes
-	if trace.Act.Account == "eosio" && trace.Act.Name == "setabi" &&
-		len(trace.Act.HexData) >= 20 {
-		data := trace.Act.HexData[20:]
-		if m, ok := trace.Act.Data.(map[string]interface{}); ok {
-			m["abi"] = data
-		}
+	traces := expandTraces(trace)
+	for _, tPtr := range traces {
+		convertAbiToBytes(tPtr)
 	}
-	convertAbiToBytes(trace.InlineTraces)
 	bytes, err := json.Marshal(trace)
 	if err != nil {
 		return nil, errors.New("Failed to parse ES response")
@@ -408,7 +424,20 @@ func createTransaction(getTxResult *elastic.GetResult, getTxTraceResult *elastic
 	result.BlockTime = txTrace.BlockTime
 	result.BlockNum = txTrace.BlockNum
 	//recursively replace json abi with bytes
-	convertAbiToBytes(txTrace.ActionTraces)
+	var traces []*TransactionTraceActionTrace
+	for i, _ := range txTrace.ActionTraces {
+		traces = append(traces, expandTraces(&txTrace.ActionTraces[i])...)
+	}
+	needExpandTraces := len(txTrace.ActionTraces) != len(traces)
+	if needExpandTraces {
+		txTrace.ActionTraces = make([]TransactionTraceActionTrace, 0, len(traces))
+	}
+	for _, tPtr := range traces {
+		convertAbiToBytes(tPtr)
+		if needExpandTraces {
+			txTrace.ActionTraces = append(txTrace.ActionTraces, *tPtr)
+		}
+	}
 	result.Traces, err = json.Marshal(txTrace.ActionTraces)
 	if err != nil {
 		error := new(ErrorWithCode)
