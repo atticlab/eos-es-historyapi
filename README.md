@@ -23,7 +23,7 @@ For example:
     }
 #### Create .env file
 In project directory create file .env  
-Change path to GO directory to your path
+Change path to GO directory to your path  
 For example:
 ```
 GOPATH=/home/eosuser/go  
