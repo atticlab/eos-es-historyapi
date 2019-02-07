@@ -1,14 +1,25 @@
 ENV =.env
+COMPOSE = docker-compose.yml
 -include $(ENV)
 export $(shell sed 's/=.*//' $(ENV))
 
 #LOCAL ENV VARIABLES
 VERSION := $(shell cat VERSION)
 
+define composer-generator
+   sed -i 's|{{MIDDLEWARE_SOURCE_PORT}}|$(MIDDLEWARE_SOURCE_PORT)|g' $(COMPOSE)
+   sed -i 's|{{MIDDLEWARE_DEST_PORT}}|$(MIDDLEWARE_DEST_PORT)|g' $(COMPOSE)
+   $(eval VERSION := $(shell cat VERSION))
+   sed -i 's|middleware\:.*|middleware:$(VERSION)|g' $(COMPOSE)
+endef
+
 default: list
 
 list:
-	sh -c "echo; $(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | grep -v 'Makefile'| sort"
+	@sh -c "echo; $(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | grep -v 'Makefile'| sort"
+
+generate:
+	$(composer-generator)
 
 install-dep:
 	@echo '> Installing dep...'
@@ -19,19 +30,43 @@ install-dep:
 	$(shell cp $(GOPATH)/bin/dep $(GOPATH)/src/$(NAMEREPO)/)
 
 build-app:
+ifneq (,$(wildcard dep))
 	@echo '> Build middleware app...'
-	cd $(GOPATH)/src/$(NAMEREPO) && $(GOPATH)/bin/dep ensure
+	dep ensure
 	cd $(GOPATH)/src/$(NAMEREPO) && go build -o ./bin/middleware
+else
+	@echo 'File dep is not exist. Please type make install-dep.'
+endif
 
 build-docker:
+ifneq (,$(wildcard config.json))
+ifneq (,$(wildcard dep))
 	@echo '> Build image middleware:$(VERSION)...'
 	$(shell ./version.sh)
 	$(eval VERSION := $(shell cat VERSION))
 	docker build -t middleware:$(VERSION) .
+else
+	@echo 'File dep is not exist. Please type make install-dep.'
+endif
+else
+	@echo 'File config.json is not exist. Please create a config.json file.'
+endif
+
+create-compose: build-docker generate
+
+docker-start:
+	docker-compose up -d
+
+docker-stop:
+	docker-compose stop
 
 start:
+ifneq (,$(wildcard config.json))
 	@echo '> Start middleware...'
 	$(shell $(GOPATH)/src/$(NAMEREPO)/bin/middleware > $(GOPATH)/src/$(NAMEREPO)/stdout.txt 2> $(GOPATH)/src/$(NAMEREPO)/stderr.txt &  echo $$! > $(GOPATH)/src/$(NAMEREPO)/middleware.pid)
+else
+	@echo 'File config.json is not exist. Please create a config.json file.'
+endif
 
 stop:
 	@echo '> Stop middleware...'
