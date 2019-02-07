@@ -80,7 +80,7 @@ type TransactionTraceActionTrace struct {
 
 
 type TransactionTrace struct {
-	Id              json.RawMessage `json:"id"`
+	Id                       string `json:"id"`
 	BlockNum        json.RawMessage `json:"block_num"`
 	BlockTime       json.RawMessage `json:"block_time"`
 	ProducerBlockId json.RawMessage `json:"producer_block_id"`

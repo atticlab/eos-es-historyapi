@@ -20,7 +20,8 @@ const TransactionsIndex      string = "transactions"
 const TransactionTracesIndex string = "transaction_traces"
 const ActionTracesIndex      string = "action_traces"
 
-const MaxQuerySize int = 10000
+const MaxQuerySize          int = 10000
+const MaxFindActionsResults int = 1000
 
 
 //get index list from ES and parse indices from it
@@ -329,7 +330,7 @@ func getActions(client *elastic.Client, params GetActionsParams, indices map[str
 			continue
 		}
 		action := Action { GlobalActionSeq: actionTrace.Receipt.GlobalSequence,
-			AccountActionSeq: accountActionSeq,
+			AccountActionSeq: &accountActionSeq,
 			BlockNum: actionTrace.BlockNum, BlockTime: actionTrace.BlockTime,
 			ActionTrace: trace }
 		result.Actions = append(result.Actions, action)
@@ -586,5 +587,122 @@ func getControlledAccounts(client *elastic.Client, params GetControlledAccountsP
 		result.ControlledAccounts = append(result.ControlledAccounts, account.Name)
 	}
 	sort.Strings(result.ControlledAccounts)
+	return result, nil
+}
+
+//performs query on ES
+//query contains filter on act.data field
+//if account_name was provided then the filter on receipt.receiver and act.authorization.actor is also included
+//if at least one of from_date or to_date was provided then the filter on block_time is included
+func findActionsByData(client *elastic.Client, params FindActionsParams, indices map[string][]string) (*FindActionsResult, error) {
+	query := elastic.NewBoolQuery()
+	filters := make([]elastic.Query, 0)
+	filters = append(filters, elastic.NewMatchQuery("act.data", params.Data))
+	if params.AccountName != "" {
+		filters = append(filters, elastic.NewMultiMatchQuery(params.AccountName, "receipt.receiver", "act.authorization.actor"))
+	}
+	if params.FromDate != "" || params.ToDate != "" {
+		rangeQ := elastic.NewRangeQuery("block_time")
+		if params.FromDate != "" {
+			rangeQ.Gte(params.FromDate)
+		}
+		if params.ToDate != "" {
+			rangeQ.Lte(params.ToDate)
+		}
+		filters = append(filters, rangeQ)
+	}
+	query = query.Filter(filters...)
+	searchResult, err := client.Search().
+		Index(ActionTracesIndexPrefix + "*").
+		Query(query).
+		Sort("receipt.global_sequence", true).
+		Size(MaxFindActionsResults).
+		Do(context.Background())
+	if err != nil || searchResult == nil || searchResult.Hits == nil {
+		return nil, err
+	}
+
+	result := new(FindActionsResult)
+	result.Actions = make([]Action, 0, len(searchResult.Hits.Hits))
+	//get info from action_traces*
+	actionTraces := make([]ActionTrace, 0, len(searchResult.Hits.Hits))
+	txIds := make([]string, 0)
+	mapTxTraces := make(map[string]*TransactionTrace)
+	for _, hit := range searchResult.Hits.Hits {
+		if hit == nil || hit.Source == nil {
+			continue
+		}
+
+		var actionTrace ActionTrace
+		err = json.Unmarshal(*hit.Source, &actionTrace)
+		if err != nil {
+			continue
+		}
+		actionTraces = append(actionTraces, actionTrace)
+		_, txEncountered := mapTxTraces[actionTrace.TrxId]
+		if !txEncountered {
+			mapTxTraces[actionTrace.TrxId] = new(TransactionTrace)
+			txIds = append(txIds, actionTrace.TrxId)
+		}
+	}
+	//get all transaction_traces that contain collected action traces
+	txTraces, err := getTransactionTraces(client, txIds, indices[TransactionTracesIndexPrefix])
+	if err != nil {
+		return nil, err
+	}
+	for _, txTrace := range txTraces {
+		mapTxTraces[txTrace.Id] = txTrace
+	}
+	for _, at := range actionTraces {
+		trace, err := findActionTrace(mapTxTraces[at.TrxId], at.Receipt.GlobalSequence)
+		if err != nil {
+			return nil, err
+		}
+		//replace json abi with bytes
+		expandedTraces := expandTraces(trace)
+		for _, tPtr := range expandedTraces {
+			convertAbiToBytes(tPtr)
+		}
+		bytes, err := json.Marshal(trace)
+		if err != nil {
+			return nil, err
+		}
+		action := Action { GlobalActionSeq: at.Receipt.GlobalSequence,
+			AccountActionSeq: nil,
+			BlockNum: at.BlockNum, BlockTime: at.BlockTime,
+			ActionTrace: bytes }
+		result.Actions = append(result.Actions, action)
+	}
+	return result, nil
+}
+
+//takes elasticsearch client, list of transactions to get and
+//slice of transaction_traces* indices from which tx traces will be retrieved
+//performs multi get request on ES
+//unmarshals results to TransactionTrace structs and returns them
+func getTransactionTraces(client *elastic.Client, txIds []string, txTracesIndices []string) ([]*TransactionTrace, error) {
+	multiGet := client.MultiGet()
+	for _, index := range txTracesIndices {
+		for _, txId := range txIds {
+			multiGet.Add(elastic.NewMultiGetItem().Index(index).Id(txId))
+		}
+	}
+	mgetResult, err := multiGet.Do(context.Background())
+	if err != nil || mgetResult == nil || mgetResult.Docs == nil {
+		return nil, err
+	}
+	result := make([]*TransactionTrace, 0)
+	for _, doc := range mgetResult.Docs {
+		if doc == nil || doc.Error != nil || !doc.Found || doc.Source == nil {
+			continue
+		}
+		
+		var txTrace TransactionTrace
+		err = json.Unmarshal(*doc.Source, &txTrace)
+		if err != nil {
+			continue
+		}
+		result = append(result, &txTrace)
+	}
 	return result, nil
 }

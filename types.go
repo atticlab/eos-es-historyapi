@@ -64,7 +64,7 @@ type GetActionsParams struct {
 
 type Action struct {
 	GlobalActionSeq  json.RawMessage `json:"global_action_seq"`
-	AccountActionSeq          uint64 `json:"account_action_seq"`
+	AccountActionSeq         *uint64 `json:"account_action_seq,omitempty"`
 	BlockNum         json.RawMessage `json:"block_num"`
 	BlockTime        json.RawMessage `json:"block_time"`
 	ActionTrace      json.RawMessage `json:"action_trace"`
@@ -108,4 +108,18 @@ type GetControlledAccountsParams struct {
 
 type GetControlledAccountsResult struct {
 	ControlledAccounts []string `json:"controlled_accounts"`
+}
+
+
+//find_actions types
+type FindActionsParams struct {
+	AccountName string `json:"account_name"`
+	Data        string `json:"data"`
+	FromDate    string `json:"from_date"`
+	ToDate      string `json:"to_date"`
+}
+
+type FindActionsResult struct {
+	Actions                      []Action `json:"actions"`
+	LastIrreversibleBlock json.RawMessage `json:"last_irreversible_block"`
 }

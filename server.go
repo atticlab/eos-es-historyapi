@@ -76,6 +76,7 @@ func (s *Server) setRoutes() {
 	http.HandleFunc(ApiPath + "get_transaction", s.onlyGetOrPost(s.handleGetTransaction()))
 	http.HandleFunc(ApiPath + "get_key_accounts", s.onlyGetOrPost(s.handleGetKeyAccounts()))
 	http.HandleFunc(ApiPath + "get_controlled_accounts", s.onlyGetOrPost(s.handleGetControlledAccounts()))
+	http.HandleFunc(ApiPath + "find_actions", s.onlyGetOrPost(s.handleFindActions()))
 }
 
 
@@ -312,6 +313,50 @@ func (s *Server) handleGetControlledAccounts() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
+		b, err := json.Marshal(result)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			response := ErrorResult { Code: http.StatusInternalServerError, Message: err.Error() }
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		fmt.Fprintf(w, string(b))
+	}
+}
+
+
+func (s *Server) handleFindActions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bytes, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			response := ErrorResult { Code: http.StatusInternalServerError, Message: err.Error() }
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		var params FindActionsParams
+		err = json.Unmarshal(bytes, &params)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response := ErrorResult { Code: http.StatusBadRequest, Message: "Invalid arguments." }
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		result, err := findActionsByData(s.ElasticClient, params, s.getIndices())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			response := ErrorResult { Code: http.StatusInternalServerError, Message: err.Error() }
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		info, err := getInfo(s.SeedNode)
+		if err == nil {
+			result.LastIrreversibleBlock = info.LastIrreversibleBlockNum
+		}
+
 		b, err := json.Marshal(result)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
