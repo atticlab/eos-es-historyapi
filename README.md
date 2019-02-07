@@ -25,11 +25,12 @@ For example:
 In project directory create file .env  
 Change path to GO directory to your path
 For example:
-
+```
 GOPATH=/home/eosuser/go  
 NAMEREPO=eos-es-historyapi  
 MIDDLEWARE_SOURCE_PORT=9000  
 MIDDLEWARE_DEST_PORT=9000  
+```
 ####
 ## Application
 #### Build application
