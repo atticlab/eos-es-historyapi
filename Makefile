@@ -30,24 +30,16 @@ install-dep:
 	$(shell cp $(GOPATH)/bin/dep $(GOPATH)/src/$(NAMEREPO)/)
 
 build-app: install-dep
-ifneq (,$(wildcard dep))
 	@echo '> Build middleware app...'
 	dep ensure
 	cd $(GOPATH)/src/$(NAMEREPO) && go build -o ./bin/middleware
-else
-	@echo 'File dep is not exist. Please type make install-dep.'
-endif
 
 build-docker: install-dep
 ifneq (,$(wildcard config.json))
-ifneq (,$(wildcard dep))
 	@echo '> Build image middleware:$(VERSION)...'
 	$(shell ./version.sh)
 	$(eval VERSION := $(shell cat VERSION))
 	docker build -t middleware:$(VERSION) .
-else
-	@echo 'File dep is not exist. Please type make install-dep.'
-endif
 else
 	@echo 'File config.json is not exist. Please create a config.json file.'
 endif
