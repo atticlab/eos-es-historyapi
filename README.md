@@ -35,7 +35,7 @@ $make start
 ```sh
 $make stop
 ```
-## DOCKER
+## Docker
 #### Build docker
 ```sh
 $make install-dep
