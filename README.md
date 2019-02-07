@@ -24,6 +24,17 @@ For example:
         "elastic_url": "http://127.0.0.1:9201",
         "seed_node": "https://proxy.eosnode.tools"
     }
+#### Create .env file
+In project directory create file .env  
+Change path to GO directory to your path  
+For example:  
+```
+GOPATH=/home/eosuser/go
+NAMEREPO=eos-es-historyapi
+MIDDLEWARE_SOURCE_PORT=9000
+MIDDLEWARE_DEST_PORT=9000
+```
+####
 #### Change GOPATH in .env
 Change path to go directory to your path
 ####
