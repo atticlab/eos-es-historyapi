@@ -5,14 +5,11 @@ History API for Elasticsearch cluster
 #### Get source code
 ```sh
 $ cd $GOPATH/src
-$ git clone https://github.com/InCrypto-io/EOS-ES_middleware.git
-$ cd EOS-ES_middleware/
+$ git clone https://github.com/atticlab/eos-es-historyapi.git
+$ cd eos-es-historyapi/
 $ git checkout dev
 ```
-#### Get dependencies using dep
-```sh
-$ dep ensure
-```
+#### 
 #### Create config.json
 In project directory create file config.json.  
 "port" property is for the port on which server will listen.  
@@ -23,20 +20,40 @@ For example:
         "port": 9000,
         "elastic_url": "http://127.0.0.1:9201"
     }
-#### Run
-Assuming you are in the project root directory:  
-First build with  
-```sh
-$ go build -o ./bin/middleware
-```
-Then copy config.json to bin  
-After you copied config run executable
-```sh
-$ cd bin
-$ ./middleware
-```
 
-
+## Application
+#### Build application
+```sh
+$make install-dep
+$make build-app
+```
+#### Run application
+```sh
+$make start
+```
+### Stop application
+```sh
+$make stop
+```
+## DOCKER
+#### Build docker
+```sh
+$make install-dep
+$make build-docker
+```
+#### create docker-compose
+```sh
+$make create-compose
+```
+#### Run docker-compose
+```sh
+$make docker-start
+```
+#### Stop docker-compose
+```sh
+$make docker-stop
+```
+#### 
 ## Usage
 This API supports following GET and POST requests:  
 
