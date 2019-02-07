@@ -22,7 +22,10 @@ For example:
         "port": 9000,
         "elastic_url": "http://127.0.0.1:9201",
         "seed_node": "https://proxy.eosnode.tools"
-    }
+    }  
+  
+The "seed_node" parameter is needed by the application to connect to the node and receive transactions.trx that are not in Elasticsearch data.  
+
 #### Create .env file
 In project directory create file .env  
 Change path to GO directory to your path  
