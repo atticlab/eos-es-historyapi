@@ -3,3 +3,5 @@ bin
 scripts/test/config.json
 scripts/test/out.json
 Gopkg.lock
+.env
+config.json
