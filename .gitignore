@@ -5,3 +5,4 @@ scripts/test/out.json
 Gopkg.lock
 .env
 config.json
+dep
