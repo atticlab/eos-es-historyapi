@@ -29,7 +29,7 @@ install-dep:
 	$(shell cd $(GOPATH)/src/github.com/golang/dep; go install -ldflags="-X main.version=$(DEP_LATEST)" ./cmd/dep)
 	$(shell cp $(GOPATH)/bin/dep $(GOPATH)/src/$(NAMEREPO)/)
 
-build-app:
+build-app: install-dep
 ifneq (,$(wildcard dep))
 	@echo '> Build middleware app...'
 	dep ensure
@@ -38,7 +38,7 @@ else
 	@echo 'File dep is not exist. Please type make install-dep.'
 endif
 
-build-docker:
+build-docker: install-dep
 ifneq (,$(wildcard config.json))
 ifneq (,$(wildcard dep))
 	@echo '> Build image middleware:$(VERSION)...'
