@@ -1,5 +1,5 @@
 # ESHistoryAPI
-History API for Elasticsearch cluster
+EOS History API for Elasticsearch cluster
 
 ## Installation
 #### Get source code
