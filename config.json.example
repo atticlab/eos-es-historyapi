@@ -1,4 +1,5 @@
 {
     "port": 9000,
-    "elastic_url": "http://127.0.0.1:9201"
+    "elastic_url": "http://127.0.0.1:9201",
+    "seed_node": "https://proxy.eosnode.tools"
 }
