@@ -1,5 +1,5 @@
 # ESHistoryAPI
-EOS History API for Elasticsearch cluster
+EOS History API for Elasticsearch cluster on GO
 
 ## Installation
 #### Get source code
