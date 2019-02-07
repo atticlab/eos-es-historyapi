@@ -1,3 +1,5 @@
 vendor
 bin
 Gopkg.lock
+.env
+config.json
