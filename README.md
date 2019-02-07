@@ -1,5 +1,7 @@
 # ESHistoryAPI
-History API for Elasticsearch cluster
+History API for Elasticsearch cluster.
+In the benchmark testing, real query traffic was redirected to this application. 
+The application works stably at 300 simultaneous connections.
 
 ## Installation
 #### Get source code
@@ -26,7 +28,6 @@ Change path to go directory to your path
 ## Application
 #### Build application
 ```sh
-$make install-dep
 $make build-app
 ```
 #### Run application
@@ -40,7 +41,6 @@ $make stop
 ## Docker
 #### Build docker
 ```sh
-$make install-dep
 $make build-docker
 ```
 #### create docker-compose
