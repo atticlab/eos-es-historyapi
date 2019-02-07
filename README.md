@@ -1,7 +1,7 @@
 # ESHistoryAPI
-History API for Elasticsearch cluster.
-In the benchmark testing, real query traffic was redirected to this application. 
-The application works stably at 300 simultaneous connections.
+History API for Elasticsearch cluster.  
+In the benchmark testing, real query traffic was redirected to this application.  
+The application works stably at 300 simultaneous connections.  
 
 ## Installation
 #### Get source code
