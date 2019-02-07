@@ -16,7 +16,7 @@ $ git checkout dev
 In project directory create file config.json.  
 "port" property is for the port on which server will listen.  
 "elastic_url" property is for the url of elasticsearch cluster.  
-"seed_node" property is for the url of node with chain_api_plugin enabled
+"seed_node" property is for the url of node with chain_api_plugin enabled  
 For example:
 
     {
