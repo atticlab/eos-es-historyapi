@@ -15,11 +15,13 @@ $ cd eos-es-historyapi/
 In project directory create file config.json.  
 "port" property is for the port on which server will listen.  
 "elastic_url" property is for the url of elasticsearch cluster.  
+"seed_node" property is for the url of node with chain_api_plugin enabled.  
 For example:
 
     {
         "port": 9000,
-        "elastic_url": "http://127.0.0.1:9201"
+        "elastic_url": "http://127.0.0.1:9201",
+        "seed_node": "https://proxy.eosnode.tools"
     }
 #### Create .env file
 In project directory create file .env  

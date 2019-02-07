@@ -9,12 +9,12 @@ import (
 )
 
 
-const RemoteNode                   string = "http://eosbp-0.atticlab.net"
-
-
 //returns info from node chain api
-func getInfo() (*ChainGetInfoResult, error) {
-	resp, err := http.Get(RemoteNode + "/v1/chain/get_info")
+func getInfo(seedNode string) (*ChainGetInfoResult, error) {
+	if len(seedNode) > 0 && seedNode[len(seedNode)-1] != '/' {
+		seedNode = seedNode + "/"
+	}
+	resp, err := http.Get(seedNode + "v1/chain/get_info")
 	if err != nil {
 		return nil, err
 	}
@@ -32,12 +32,15 @@ func getInfo() (*ChainGetInfoResult, error) {
 //retrieves block from node chain api
 //searches requested transaction in retrieved block
 //returns the trx->trx field contents in the correct format
-func getTransactionFromBlock(blockNum json.RawMessage, txId string) (json.RawMessage, error) {
+func getTransactionFromBlock(seedNode string, blockNum json.RawMessage, txId string) (json.RawMessage, error) {
+	if len(seedNode) > 0 && seedNode[len(seedNode)-1] != '/' {
+		seedNode = seedNode + "/"
+	}
 	var result json.RawMessage
 	u := GetBlockParams { BlockNum: blockNum }
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
-	resp, err := http.Post(RemoteNode + "/v1/chain/get_block", "application/json", b)
+	resp, err := http.Post(seedNode + "v1/chain/get_block", "application/json", b)
 	if err != nil {
 		return result, err
 	}

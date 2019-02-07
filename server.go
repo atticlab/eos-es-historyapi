@@ -22,10 +22,13 @@ const FetchIndexListIntervalSeconds int64 = 30
 type Config struct {
 	Port       uint32 `json:"port"`
 	ElasticUrl string `json:"elastic_url"`
+	SeedNode   string `json:"seed_node"`
 }
 
 
 type Server struct {
+	Port uint32
+	SeedNode string
 	ElasticUrl string
     ElasticClient *elastic.Client
 	Indices map[string][]string
@@ -34,24 +37,31 @@ type Server struct {
 	Wg2 sync.WaitGroup
 }
 
+func NewServer(config Config) *Server {
+	s := new(Server)
+	s.Port = config.Port
+	s.SeedNode = config.SeedNode
+	s.ElasticUrl = config.ElasticUrl
+    return s
+}
 
-func (s * Server) listen(port uint32) {
-	err := http.ListenAndServe(":" + fmt.Sprint(port), nil)
+
+func (s * Server) listen() {
+	err := http.ListenAndServe(":" + fmt.Sprint(s.Port), nil)
     if err != nil {
         panic(err)
     }
 }
 
 
-func (s *Server) initElasticClient(url string) {
+func (s *Server) initElasticClient() {
 	client, err := elastic.NewClient(
-		elastic.SetURL(url),
+		elastic.SetURL(s.ElasticUrl),
 		elastic.SetSniff(false))
 	if err != nil {
 		panic(err)
 	} else {
 		s.ElasticClient = client
-		s.ElasticUrl = url
 		go func () {
 			for {
 				s.fetchIndices()
@@ -147,7 +157,7 @@ func (s *Server) handleGetActions() http.HandlerFunc {
 			return
 		}
 
-		info, err := getInfo()
+		info, err := getInfo(s.SeedNode)
 		if err == nil {
 			result.LastIrreversibleBlock = info.LastIrreversibleBlockNum
 		}
@@ -198,7 +208,7 @@ func (s *Server) handleGetTransaction() http.HandlerFunc {
 			return
 		}
 		//get missing fields from v1/chain/get_block
-		txFromBlock, err := getTransactionFromBlock(result.BlockNum, result.Id)
+		txFromBlock, err := getTransactionFromBlock(s.SeedNode, result.BlockNum, result.Id)
 		if err == nil {
 			var receipt map[string]json.RawMessage
 			err = json.Unmarshal(result.Trx["receipt"], &receipt)
@@ -211,7 +221,7 @@ func (s *Server) handleGetTransaction() http.HandlerFunc {
 			}
 		}
 
-		info, err := getInfo()
+		info, err := getInfo(s.SeedNode)
 		if err == nil {
 			result.LastIrreversibleBlock = info.LastIrreversibleBlockNum
 		}

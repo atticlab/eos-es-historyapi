@@ -23,8 +23,8 @@ func main() {
 		return
 	}
 
-	var s Server
-	s.initElasticClient(config.ElasticUrl)
-	s.setRoutes()
-	s.listen(config.Port)
+	server := NewServer(config)
+	server.initElasticClient()
+	server.setRoutes()
+	server.listen()
 }
