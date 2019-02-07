@@ -1,0 +1,9 @@
+version: '2.0'
+  
+services:
+    middlewaresrw:
+        image: middleware:1111
+        container_name: middleware-1
+        ports:
+            - "{{MIDDLEWARE_SOURCE_PORT}}:{{MIDDLEWARE_DEST_PORT}}"
+
