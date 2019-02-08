@@ -142,47 +142,6 @@ func findActionTrace(txTrace *TransactionTrace, actionSeq json.RawMessage) (*Tra
 	return nil
 }
 
-func getActionTrace(client *elastic.Client, txId string, actionSeq json.RawMessage, indices map[string][]string) (json.RawMessage, error) {
-	multiGet := client.MultiGet()
-	for _, index := range indices[TransactionTracesIndexPrefix] {
-		multiGet.Add(elastic.NewMultiGetItem().Index(index).Id(txId))
-	}
-	mgetResult, err := multiGet.Do(context.Background())
-	if err != nil || mgetResult == nil || mgetResult.Docs == nil {
-		return nil, err
-	}
-	var getResult *elastic.GetResult
-	for _, doc := range mgetResult.Docs {
-		if doc == nil || doc.Error != nil || !doc.Found {
-			continue
-		}
-		getResult = doc
-	}
-
-	if getResult == nil || !getResult.Found || getResult.Source == nil {
-		return nil, errors.New("Action trace not found")
-	}
-	var txTrace TransactionTrace
-	err = json.Unmarshal(*getResult.Source, &txTrace)
-	if err != nil {
-		return nil, errors.New("Failed to parse ES response")
-	}
-	trace := findActionTrace(&txTrace, actionSeq)
-	if trace == nil {
-		return nil, errors.New("Action trace not found in transaction trace")
-	}
-	//replace json abi with bytes
-	traces := expandTraces(trace)
-	for _, tPtr := range traces {
-		convertAbiToBytes(tPtr)
-	}
-	bytes, err := json.Marshal(trace)
-	if err != nil {
-		return nil, errors.New("Failed to parse ES response")
-	}
-	return bytes, nil
-}
-
 
 func countActions(client *elastic.Client, params GetActionsParams, index string) (int64, error) {
 	query := elastic.NewBoolQuery()
@@ -294,28 +253,39 @@ func getActions(client *elastic.Client, params GetActionsParams, indices map[str
 		return nil, err
 	}
 
-	var searchHits []elastic.SearchHit
+	//get info from action_traces*
+	actionTraces := make([]ActionTrace, 0)
+	txIds := make([]string, 0)
+	mapTxTraces := make(map[string]*TransactionTrace)
 	for _, resp := range msearchResult.Responses {
 		if resp == nil || resp.Error != nil {
 			continue
 		}
 		for _, hit := range resp.Hits.Hits {
-			if hit != nil && len(searchHits) < int(*params.Offset) {
-				searchHits = append(searchHits, *hit)
+			if hit == nil || hit.Source == nil {
+				continue
 			}
-		}
-		if len(searchHits) == int(*params.Offset) {
-			break
+			var actionTrace ActionTrace
+			if err = json.Unmarshal(*hit.Source, &actionTrace); err == nil {
+				actionTraces = append(actionTraces, actionTrace)
+				_, txEncountered := mapTxTraces[actionTrace.TrxId]
+				if !txEncountered {
+					mapTxTraces[actionTrace.TrxId] = new(TransactionTrace)
+					txIds = append(txIds, actionTrace.TrxId)
+				}
+			}
 		}
 	}
 	msearchResult.Responses = nil
-	
-	result.Actions = make([]Action, 0, len(searchHits))
-	for i, hit := range searchHits {
-		if hit.Source == nil {
-			continue
-		}
-
+	//get all transaction_traces that contain collected action traces
+	txTraces, err := getTransactionTraces(client, txIds, indices[TransactionTracesIndexPrefix])
+	if err != nil {
+		return nil, err
+	}
+	for _, txTrace := range txTraces {
+		mapTxTraces[txTrace.Id] = txTrace
+	}
+	for i, at := range actionTraces {
 		var accountActionSeq uint64
 		if ascOrder {
 			accountActionSeq = uint64(*params.Pos) + uint64(i)
@@ -323,19 +293,17 @@ func getActions(client *elastic.Client, params GetActionsParams, indices map[str
 			accountActionSeq = totalActions - (uint64(*params.Pos) + uint64(i + 1))
 		}
 
-		var actionTrace ActionTrace
-		err = json.Unmarshal(*hit.Source, &actionTrace)
-		if err != nil {
-			continue
+		trace := findActionTrace(mapTxTraces[at.TrxId], at.Receipt.GlobalSequence)
+		//replace json abi with bytes
+		expandedTraces := expandTraces(trace)
+		for _, tPtr := range expandedTraces {
+			convertAbiToBytes(tPtr)
 		}
-		trace, err := getActionTrace(client, actionTrace.TrxId, actionTrace.Receipt.GlobalSequence, indices)
-		if err != nil {
-			continue
-		}
-		action := Action { GlobalActionSeq: actionTrace.Receipt.GlobalSequence,
+		bytes, _ := json.Marshal(trace)
+		action := Action { GlobalActionSeq: at.Receipt.GlobalSequence,
 			AccountActionSeq: &accountActionSeq,
-			BlockNum: actionTrace.BlockNum, BlockTime: actionTrace.BlockTime,
-			ActionTrace: trace }
+			BlockNum: at.BlockNum, BlockTime: at.BlockTime,
+			ActionTrace: bytes }
 		result.Actions = append(result.Actions, action)
 	}
 	return result, nil
