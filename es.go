@@ -232,7 +232,9 @@ func getActions(client *elastic.Client, params GetActionsParams, indices map[str
 	}
 	
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMultiMatchQuery(params.AccountName, "receipt.receiver", "act.authorization.actor"))
+	accountFilter := elastic.NewMultiMatchQuery(params.AccountName, "receipt.receiver", "act.authorization.actor")
+	exceptFilter := elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("except"))
+	query = query.Filter(accountFilter, exceptFilter)
 	msearch := client.MultiSearch()
 	for i, index := range targetIndices {
 		sreq := elastic.NewSearchRequest().
@@ -588,6 +590,7 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 			Gte("now-" + strconv.FormatUint(uint64(*params.LastDays), 10) + "d/d")
 		filters = append(filters, rangeQ)
 	}
+	filters = append(filters, elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("except")))
 	query = query.Filter(filters...)
 	searchResult, err := client.Search().
 		Index(ActionTracesIndexPrefix + "*").
