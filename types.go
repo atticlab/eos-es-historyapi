@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"time"
+	"fmt"
 )
 
 
@@ -113,11 +115,36 @@ type GetControlledAccountsResult struct {
 
 //find_actions types
 type FindActionsParams struct {
-	AccountName string `json:"account_name"`
-	Data        string `json:"data"`
-	FromDate    string `json:"from_date"`
-	ToDate      string `json:"to_date"`
+	AccountName   string `json:"account_name"`
+	Data          string `json:"data"`
+	FromDate interface{} `json:"from_date"`
+	ToDate   interface{} `json:"to_date"`
+	LastDays     *uint32 `json:"last_days"`
 }
+
+func (p *FindActionsParams) prepareTimeStrings() {
+	if _, ok := p.FromDate.(string); ok {
+		//OK, nothing to do here
+	} else if n, ok := p.FromDate.(float64); ok {
+		t := time.Unix(int64(n), 0)
+		s := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d.000",
+			t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+		p.FromDate = s
+	} else {
+		p.FromDate = ""
+	}
+	if _, ok := p.ToDate.(string); ok {
+		//OK, nothing to do here
+	} else if n, ok := p.ToDate.(float64); ok {
+		t := time.Unix(int64(n), 0)
+		s := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d.000",
+			t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+		p.ToDate = s
+	} else {
+		p.ToDate = ""
+	}
+}
+
 
 type FindActionsResult struct {
 	Actions                      []Action `json:"actions"`

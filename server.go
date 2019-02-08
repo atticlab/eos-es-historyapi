@@ -344,6 +344,7 @@ func (s *Server) handleFindActions() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
+		params.prepareTimeStrings()
 
 		result, err := findActionsByData(s.ElasticClient, params, s.getIndices())
 		if err != nil {

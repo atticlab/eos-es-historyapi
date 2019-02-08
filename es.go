@@ -21,7 +21,7 @@ const TransactionTracesIndex string = "transaction_traces"
 const ActionTracesIndex      string = "action_traces"
 
 const MaxQuerySize          int = 10000
-const MaxFindActionsResults int = 1000
+const MaxFindActionsResults int = 100
 
 
 //get index list from ES and parse indices from it
@@ -100,7 +100,10 @@ func convertAbiToBytes(trace *TransactionTraceActionTrace) {
 }
 
 
-func findActionTrace(txTrace *TransactionTrace, actionSeq json.RawMessage) (*TransactionTraceActionTrace, error) {
+func findActionTrace(txTrace *TransactionTrace, actionSeq json.RawMessage) (*TransactionTraceActionTrace) {
+	if txTrace == nil {
+		return nil
+	}
 	actionTraces := txTrace.ActionTraces
 	trace := new(TransactionTraceActionTrace)
 	for len(actionTraces) > 0 {
@@ -133,10 +136,10 @@ func findActionTrace(txTrace *TransactionTrace, actionSeq json.RawMessage) (*Tra
 			targetSeq = s
 		}
 		if seq == targetSeq {
-			return trace, nil
+			return trace
 		}
 	}
-	return nil, errors.New("Action trace not found in transaction trace")
+	return nil
 }
 
 func getActionTrace(client *elastic.Client, txId string, actionSeq json.RawMessage, indices map[string][]string) (json.RawMessage, error) {
@@ -164,9 +167,9 @@ func getActionTrace(client *elastic.Client, txId string, actionSeq json.RawMessa
 	if err != nil {
 		return nil, errors.New("Failed to parse ES response")
 	}
-	trace, err := findActionTrace(&txTrace, actionSeq)
-	if err != nil {
-		return nil, err
+	trace := findActionTrace(&txTrace, actionSeq)
+	if trace == nil {
+		return nil, errors.New("Action trace not found in transaction trace")
 	}
 	//replace json abi with bytes
 	traces := expandTraces(trace)
@@ -594,6 +597,7 @@ func getControlledAccounts(client *elastic.Client, params GetControlledAccountsP
 //query contains filter on act.data field
 //if account_name was provided then the filter on receipt.receiver and act.authorization.actor is also included
 //if at least one of from_date or to_date was provided then the filter on block_time is included
+//if last_days was provided then the filter on block_time is included
 func findActionsByData(client *elastic.Client, params FindActionsParams, indices map[string][]string) (*FindActionsResult, error) {
 	query := elastic.NewBoolQuery()
 	filters := make([]elastic.Query, 0)
@@ -611,6 +615,11 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 		}
 		filters = append(filters, rangeQ)
 	}
+	if params.LastDays != nil {
+		rangeQ := elastic.NewRangeQuery("block_time").
+			Gte("now-" + strconv.FormatUint(uint64(*params.LastDays), 10) + "d/d")
+		filters = append(filters, rangeQ)
+	}
 	query = query.Filter(filters...)
 	searchResult, err := client.Search().
 		Index(ActionTracesIndexPrefix + "*").
@@ -624,6 +633,9 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 
 	result := new(FindActionsResult)
 	result.Actions = make([]Action, 0, len(searchResult.Hits.Hits))
+	if len(searchResult.Hits.Hits) == 0 {
+		return result, nil
+	}
 	//get info from action_traces*
 	actionTraces := make([]ActionTrace, 0, len(searchResult.Hits.Hits))
 	txIds := make([]string, 0)
@@ -632,17 +644,14 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 		if hit == nil || hit.Source == nil {
 			continue
 		}
-
 		var actionTrace ActionTrace
-		err = json.Unmarshal(*hit.Source, &actionTrace)
-		if err != nil {
-			continue
-		}
-		actionTraces = append(actionTraces, actionTrace)
-		_, txEncountered := mapTxTraces[actionTrace.TrxId]
-		if !txEncountered {
-			mapTxTraces[actionTrace.TrxId] = new(TransactionTrace)
-			txIds = append(txIds, actionTrace.TrxId)
+		if err = json.Unmarshal(*hit.Source, &actionTrace); err == nil {
+			actionTraces = append(actionTraces, actionTrace)
+			_, txEncountered := mapTxTraces[actionTrace.TrxId]
+			if !txEncountered {
+				mapTxTraces[actionTrace.TrxId] = new(TransactionTrace)
+				txIds = append(txIds, actionTrace.TrxId)
+			}
 		}
 	}
 	//get all transaction_traces that contain collected action traces
@@ -654,21 +663,14 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 		mapTxTraces[txTrace.Id] = txTrace
 	}
 	for _, at := range actionTraces {
-		trace, err := findActionTrace(mapTxTraces[at.TrxId], at.Receipt.GlobalSequence)
-		if err != nil {
-			return nil, err
-		}
+		trace := findActionTrace(mapTxTraces[at.TrxId], at.Receipt.GlobalSequence)
 		//replace json abi with bytes
 		expandedTraces := expandTraces(trace)
 		for _, tPtr := range expandedTraces {
 			convertAbiToBytes(tPtr)
 		}
-		bytes, err := json.Marshal(trace)
-		if err != nil {
-			return nil, err
-		}
+		bytes, _ := json.Marshal(trace)
 		action := Action { GlobalActionSeq: at.Receipt.GlobalSequence,
-			AccountActionSeq: nil,
 			BlockNum: at.BlockNum, BlockTime: at.BlockTime,
 			ActionTrace: bytes }
 		result.Actions = append(result.Actions, action)
@@ -681,6 +683,10 @@ func findActionsByData(client *elastic.Client, params FindActionsParams, indices
 //performs multi get request on ES
 //unmarshals results to TransactionTrace structs and returns them
 func getTransactionTraces(client *elastic.Client, txIds []string, txTracesIndices []string) ([]*TransactionTrace, error) {
+	result := make([]*TransactionTrace, 0)
+	if len(txIds) == 0 {
+		return result, nil
+	}
 	multiGet := client.MultiGet()
 	for _, index := range txTracesIndices {
 		for _, txId := range txIds {
@@ -691,7 +697,6 @@ func getTransactionTraces(client *elastic.Client, txIds []string, txTracesIndice
 	if err != nil || mgetResult == nil || mgetResult.Docs == nil {
 		return nil, err
 	}
-	result := make([]*TransactionTrace, 0)
 	for _, doc := range mgetResult.Docs {
 		if doc == nil || doc.Error != nil || !doc.Found || doc.Source == nil {
 			continue
