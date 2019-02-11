@@ -1,5 +1,6 @@
 # EOS ESHistoryAPI - GO
-EOS History API for Elasticsearch cluster on GO  
+EOS History API for Elasticsearch cluster on GO.
+  
 In the benchmark testing, real query traffic was redirected to this application.  
 The application works stably at 300 simultaneous connections.  
 
