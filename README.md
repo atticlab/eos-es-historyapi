@@ -1,4 +1,4 @@
-# EOS ESHistoryAPI - GO
+# EOS ESHistoryAPI - GO (beta)
 EOS History API for Elasticsearch cluster on GO.
   
 In the benchmark testing, real query traffic was redirected to this application.  
