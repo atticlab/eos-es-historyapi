@@ -1,8 +1,8 @@
 # EOS ESHistoryAPI - GO
 EOS History API for Elasticsearch cluster on GO.
   
-In the benchmark testing, real query traffic was redirected to this application.  
-The application works stably at 300 simultaneous connections.  
+During the benchmark testing, real query traffic was redirected to this application.  
+The application works consistently at 300 simultaneous connections.  
 
 ## Installation
 #### Get source code
@@ -13,10 +13,10 @@ $ cd eos-es-historyapi/
 ```
 #### 
 #### Create config.json
-In project directory create file config.json.  
-"port" property is for the port on which server will listen.  
+In the project directory create file config.json.  
+"port" property is for the port on which the server will listen.  
 "elastic_url" property is for the url of elasticsearch cluster.  
-"seed_node" property is for the url of node with chain_api_plugin enabled.  
+"seed_node" property is for the url of the node with chain_api_plugin enabled.  
 For example:
 
     {
@@ -25,7 +25,7 @@ For example:
         "seed_node": "https://proxy.eosnode.tools"
     }  
   
-The "seed_node" parameter is needed by the application to connect to the node and receive transactions.trx that are not in Elasticsearch data.  
+The "seed_node" parameter is needed by the application to connect to the node and receive transactions.trx that are not in the Elasticsearch data.  
 
 #### Create .env file
 In project directory create file .env  
@@ -86,10 +86,10 @@ Example of request body:
     }
   
 Returns json with the following properties:  
-actions - array of actions of given account  
+actions - array of actions of a given account  
 #### /v1/history/get_transaction
 Requires json body with the following properties:  
-id - id of transaction.  
+id - id of a transaction.  
 Example of request body:
 
     {
@@ -97,11 +97,11 @@ Example of request body:
     }
   
 Returns json with the following properties:  
-id - id of transaction.  
+id - id of a transaction.  
 trx - transaction.  
-block_time - timestamp of block which contains requested transaction.  
-block_num - number of block which contains requested transaction.  
-traces - traces of transaction.  
+block_time - timestamp of the block which contains the requested transaction.  
+block_num - number of the block which contains the requested transaction.  
+traces - traces of the transaction.  
 #### /v1/history/get_key_accounts
 Requires json body with the following properties:  
 public_key - public key of account
@@ -112,7 +112,7 @@ Example of request body:
     }
   
 Returns json with the following properties:  
-account_names - array of accounts that have requested key  
+account_names - array of accounts that have a requested key  
 #### /v1/history/get_controlled_accounts
 Requires json body with the following properties:  
 controlling_account - name of the eos account  
@@ -123,4 +123,4 @@ Example of request body:
     }
   
 Returns json with the following properties:  
-controlled_accounts - array of accounts controlled by requested account  
+controlled_accounts - array of accounts controlled by a requested account  
