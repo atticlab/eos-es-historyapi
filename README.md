@@ -22,7 +22,7 @@ For example:
     {
         "port": 9000,
         "elastic_url": "http://127.0.0.1:9201",
-        "seed_node": "https://proxy.eosnode.tools"
+        "seed_node": "http://seed.node.ip"
     }  
   
 The "seed_node" parameter is needed by the application to connect to the node and receive transactions.trx that are not in the Elasticsearch data.  
