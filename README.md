@@ -2,7 +2,7 @@
 EOS History API for Elasticsearch cluster on GO.
   
 During the benchmark testing, real query traffic was redirected to this application.  
-The application works consistently at 300 simultaneous connections.  
+The application works consistently at > 1000 simultaneous connections.  
 
 ## Installation
 #### Get source code
